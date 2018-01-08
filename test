@@ -1,0 +1,60 @@
+void getTemplate(uint16_t id){
+  uint8_t p = finger.loadModel(id);
+  switch (p) {
+    case FINGERPRINT_OK:
+      Serial.print("template "); Serial.print(id); Serial.println(" loaded");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      return;
+    default:
+      Serial.print("Unknown error "); Serial.println(p);
+      return;
+  }
+
+  // OK success!
+
+  p = finger.getModel();
+  switch (p) {
+    case FINGERPRINT_OK:
+      break;
+   default:
+      Serial.print("Unknown error "); Serial.println(p);
+      return;
+  }
+  
+  bool last;
+  int count = 0;
+  uint16_t buflen = 512;
+  uint16_t pos = 0;
+  
+  while (true){
+    bool ret = finger.readRaw(buff + pos, ARRAY_TYPE, &last, &buflen);
+    if (ret){
+      count++;
+      pos += buflen;
+      buflen = BUFF_SZ - pos;
+      if (last)
+        break;
+    }
+    else {
+      Serial.print("Error receiving packet  ");
+      Serial.println(ret);
+      return;
+    }
+    yield();
+  }
+
+  Serial.println("---------------------------------------------");
+  for (int i = 0; i < 32; i++){
+    for (int j = 0; j < 16; j++){
+      Serial.print(buff[i*16 + j], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+    yield();
+  }
+  Serial.println("--------------------------------------------");
+
+  Serial.print(count * finger.packetLen); Serial.println(" bytes read");
+}
